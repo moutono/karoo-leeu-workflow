@@ -1,6 +1,13 @@
+FROM alpine:3.22 AS alpine
+
 FROM n8nio/n8n:latest
 
 USER root
+
+# Restoring apk for distroless hardened latest n8n images
+COPY --from=alpine /sbin/apk /sbin/apk
+COPY --from=alpine /usr/lib/libapk.so* /usr/lib/
+COPY --from=alpine /etc/apk/repositories /etc/apk/repositories
 
 # Install Puppeteer dependencies for Alpine Linux
 RUN apk add --no-cache \
