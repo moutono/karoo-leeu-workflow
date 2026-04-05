@@ -2,13 +2,14 @@
 
 This plan formalizes the setup of the Booking.com extranet scraper using n8n + Puppeteer, along with the Google Cloud Function needed to process the information in Firestore.
 
-## User Review Required
+## Status & Progress
+
+> [!NOTE]
+> All foundational files, Docker configurations, and scraper logic have been generated and committed to the `origin/master` repository.
+> The local Node.js environment has been updated to v20 (LTS) and the Firebase CLI has been successfully installed.
 
 > [!IMPORTANT]
-> The GitHub CLI (`gh`) is not installed on your system. I have initialized a local git repository. Please create a new empty repository directly on GitHub and provide me with the clone URL (e.g., `https://github.com/your-username/repo-name.git`). I will then connect our local directory to it! Alternatively, you can let me know if you would like me to assist with installing the GitHub CLI.
-
-> [!IMPORTANT]
-> We will generate the foundational structure for n8n + Puppeteer and the Cloud Function. Since this scraper relies on Booking.com DOM structure (`admin.booking.com`), the selectors may occasionally break if Booking.com updates their Extranet interface.
+> Since this scraper relies on Booking.com DOM structure (`admin.booking.com`), the selectors may occasionally break if Booking.com updates their Extranet interface.
 
 ## Proposed Changes
 
@@ -56,16 +57,19 @@ The Cloud Function will calculate final metrics based on raw numbers added to Fi
 - Calculates `manager_commission` (15% of mot_net_amount).
 - Updates the original document with the calculated fields in `financials`.
 
-## Open Questions
+## Resolved Questions
 
-1. **GitHub Setup**: Please send me the GitHub URL of your newly created repository (or ask me to install the `gh` command-line tool, or manually run the `git remote add origin` command).
-2. **Cloud Functions Deployment**: Do you have the Firebase CLI installed, or will we walk through logging in and setting up the Firebase Project after we are done writing the code?
+1. **GitHub Setup**: ~Resolved.~ The repository was verified to be connected to `origin/master` and all local changes have been committed and pushed.
+2. **Cloud Functions Deployment**: ~Resolved.~ Node.js v20.20.2 was installed to fix environment corruption, and the Firebase CLI (`firebase-tools`) was successfully installed globally.
 
-## Verification Plan
+## Next Execution Steps
 
-### Automated Tests
-- Build and spin up `docker-compose up -d`.
-- Connect to n8n at `localhost:5678` and verify the Puppeteer node operates via a test snippet.
+### 1. Finalize Cloud Function
+- **Login:** Run `firebase login` in the terminal to authorize your Google Account.
+- **Select Project:** Navigate to `cloud-function` directory and run `firebase use <projectId>`.
+- **Deploy:** Run `firebase deploy --only functions`
 
-### Manual Verification
-- Deploy the Cloud Function to a Firebase project, push a dummy document simulating scraped data, and confirm it outputs the correct calculations.
+### 2. Verify n8n Puppeteer Automation
+- **Connect:** Open `http://localhost:5678` (Docker container is running).
+- **Import:** Create a new n8n workflow and paste the logic from `scraper/navigation.ts` and `scraper/extraction.ts` into a Puppeteer Code node.
+- **Run:** Trigger the automation targeting a test reservation to verify data points are extracted correctly.
