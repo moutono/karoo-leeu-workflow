@@ -4,3 +4,4 @@ dist/
 build/
 .n8n/
 .DS_Store
+ag-stop-probe.json
