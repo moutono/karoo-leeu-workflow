@@ -6,7 +6,10 @@ This plan formalizes the setup of the Booking.com extranet scraper using n8n + P
 
 > [!NOTE]
 > All foundational files, Docker configurations, and scraper logic have been generated and committed to the `origin/master` repository.
-> The local Node.js environment has been updated to v20 (LTS) and the Firebase CLI has been successfully installed.
+> The local environment is fully configured: Node.js v20 (LTS), Java 21 JDK, and the Firebase CLI.
+
+> [!IMPORTANT]
+> The **Firebase Local Emulator** is currently running. This allows us to test the Cloud Function calculations and Firestore data storage locally (at `localhost:4000`) before deploying to the cloud.
 
 > [!IMPORTANT]
 > Since this scraper relies on Booking.com DOM structure (`admin.booking.com`), the selectors may occasionally break if Booking.com updates their Extranet interface.
@@ -64,12 +67,19 @@ The Cloud Function will calculate final metrics based on raw numbers added to Fi
 
 ## Next Execution Steps
 
-### 1. Finalize Cloud Function
-- **Login:** Run `firebase login` in the terminal to authorize your Google Account.
-- **Select Project:** Navigate to `cloud-function` directory and run `firebase use <projectId>`.
-- **Deploy:** Run `firebase deploy --only functions`
+### 1. Integrate Scraper with Local Backend
+- **Connect:** Open n8n at `http://localhost:5678`.
+- **Configure:** In your n8n workflow, set your Firestore/Firebase node to target the **Local Emulator** (`localhost:8080`) instead of the production cloud project.
+- **Import Scripts:** Copy the logic from `scraper/navigation.ts` and `scraper/extraction.ts` into a Puppeteer Code node.
 
-### 2. Verify n8n Puppeteer Automation
-- **Connect:** Open `http://localhost:5678` (Docker container is running).
-- **Import:** Create a new n8n workflow and paste the logic from `scraper/navigation.ts` and `scraper/extraction.ts` into a Puppeteer Code node.
-- **Run:** Trigger the automation targeting a test reservation to verify data points are extracted correctly.
+### 2. Run Test Verification
+- **Run:** Trigger the n8n workflow.
+- **Verify Backend:** Check the Emulator UI at `http://localhost:4000` to confirm:
+    1. The raw booking data was saved to Firestore.
+    2. The Cloud Function automatically triggered.
+    3. The `mot_net_amount` and `manager_commission` were correctly calculated and updated.
+
+### 3. Production Deployment
+- **Upgrade:** Ensure your Firebase Project is on the **Blaze** plan.
+- **Deploy:** Run `firebase deploy --only functions`.
+- **Sync n8n:** Update the n8n workflow to point to your live Firebase project ID.
