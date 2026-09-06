@@ -24,6 +24,10 @@ RUN apk add --no-cache \
 ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true \
     PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium-browser
 
+# Install the required puppeteer libraries directly into n8n's module folder so the isolated Task Runner can find them natively.
+USER root
+RUN cd /usr/local/lib/node_modules/n8n && npm install puppeteer-extra puppeteer-extra-plugin-stealth
+
 # Allow the n8n user to read/write in .n8n
 RUN mkdir -p /home/node/.n8n && chown -R node:node /home/node/.n8n
 

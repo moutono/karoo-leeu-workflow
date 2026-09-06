@@ -1,0 +1,46 @@
+[
+  {
+    "name": "Booking.com Extranet Scraper (Production)",
+    "nodes": [
+      {
+        "parameters": {},
+        "name": "When clicking \u2018Execute workflow\u2019",
+        "type": "n8n-nodes-base.manualTrigger",
+        "typeVersion": 1,
+        "position": [
+          460,
+          240
+        ]
+      },
+      {
+        "parameters": {
+          "operation": "script",
+          "code": "const puppeteer = require('puppeteer-extra');\nconst StealthPlugin = require('puppeteer-extra-plugin-stealth');\npuppeteer.use(StealthPlugin());\n\n// Try to grab credentials from item.json (n8n standard input)\nconst username = $input && $input.item && $input.item.json ? $input.item.json.username : process.env.BOOKING_USER;\nconst password = $input && $input.item && $input.item.json ? $input.item.json.password : process.env.BOOKING_PASS;\n\n// 1. Navigation Logic\nconst browser = await puppeteer.launch({\n    executablePath: '/usr/bin/chromium-browser',\n    args: ['--no-sandbox', '--disable-setuid-sandbox']\n});\nconst page = await browser.newPage();\nawait page.setViewport({ width: 1280, height: 800 });\n\n// Navigate to Booking.com\nawait page.goto('https://admin.booking.com/', { waitUntil: 'networkidle2' });\n\nif (username && password) {\n    try {\n        console.log('Attempting login');\n        await page.waitForSelector('input[name=\"loginname\"], input[name=\"username\"]', { timeout: 5000 });\n        await page.type('input[name=\"loginname\"], input[name=\"username\"]', username, { delay: 100 });\n        await page.click('button[type=\"submit\"]');\n        \n        await page.waitForSelector('input[name=\"password\"], input[type=\"password\"]', { timeout: 5000 });\n        await page.type('input[name=\"password\"], input[type=\"password\"]', password, { delay: 100 });\n        \n        await Promise.all([\n            page.waitForNavigation({ waitUntil: 'networkidle2' }),\n            page.click('button[type=\"submit\"]')\n        ]);\n        console.log('Logged in successfully');\n    } catch (e) {\n        console.log('Login prompt not found or already logged in:', e.message);\n    }\n}\n\n// Date Selection (1st of month to +30 days)\ntry {\n    const today = new Date();\n    const firstOfMonth = new Date(today.getFullYear(), today.getMonth(), 1).toISOString().split('T')[0];\n    const thirtyDaysOut = new Date(today.getTime() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];\n\n    await page.waitForSelector('input[name=\"date_from\"]', { timeout: 5000 });\n    await page.click('input[name=\"date_from\"]', { clickCount: 3 });\n    await page.type('input[name=\"date_from\"]', firstOfMonth);\n    await page.type('input[name=\"date_to\"]', thirtyDaysOut);\n\n    await page.click('button[type=\"submit\"]');\n    await page.waitForNavigation({ waitUntil: 'networkidle2' });\n} catch (e) {\n    console.log('Date fields not found, proceeding to extract.', e.message);\n}\n\n// 2. Extraction Logic \nconst bookingData = await page.evaluate(() => {\n    // Attempting to identify rows. If we are on reservations, this should match.\n    const rows = Array.from(document.querySelectorAll('.reservation-table__wrapper table tbody tr'));\n    return rows.slice(0, 5).map(row => ({\n        guestName: row.querySelector('.guest-name-cell')?.innerText.trim(),\n        grossAmount: row.querySelector('.price-cell')?.innerText.trim(),\n        platformFee: row.querySelector('.commission-cell')?.innerText.trim()\n    }));\n});\n\nawait browser.close();\nreturn { bookingData };"
+        },
+        "name": "Booking Scraper",
+        "type": "n8n-nodes-puppeteer.puppeteer",
+        "typeVersion": 1,
+        "position": [
+          680,
+          240
+        ]
+      }
+    ],
+    "connections": {
+      "When clicking \u2018Execute workflow\u2019": {
+        "main": [
+          [
+            {
+              "node": "Booking Scraper",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    },
+    "settings": {
+      "executionOrder": "v1"
+    }
+  }
+]

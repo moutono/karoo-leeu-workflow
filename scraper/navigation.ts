@@ -1,11 +1,16 @@
-import puppeteer, { Browser, Page } from 'puppeteer';
+import puppeteerOrig from 'puppeteer';
+import puppeteer from 'puppeteer-extra';
+import StealthPlugin from 'puppeteer-extra-plugin-stealth';
+import { Browser, Page } from 'puppeteer';
+
+puppeteer.use(StealthPlugin());
 
 /**
  * Navigates the Booking.com extranet to the reservations page,
  * inputs the date range and executes the search.
  */
-export async function navigateToReservations(): Promise<{ browser: Browser, page: Page }> {
-    const browser = await puppeteer.launch({
+export async function navigateToReservations(username?: string, password?: string): Promise<{ browser: Browser, page: Page }> {
+    const browser = await (puppeteer as unknown as typeof puppeteerOrig).launch({
         executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || '/usr/bin/chromium-browser',
         args: ['--no-sandbox', '--disable-setuid-sandbox']
     });
@@ -15,10 +20,33 @@ export async function navigateToReservations(): Promise<{ browser: Browser, page
     // Set a realistic viewport
     await page.setViewport({ width: 1280, height: 800 });
 
-    // Assuming we start on the Extranet Login page or jump directly to Reservations if session cookies are injected by n8n
     await page.goto('https://admin.booking.com/', { waitUntil: 'networkidle2' });
 
     console.log('Navigated to admin.booking.com');
+    
+    // Login phase
+    if (username && password) {
+        try {
+            console.log('Attempting login logic...');
+            // Booking extranet uses 'loginname' or 'username'
+            await page.waitForSelector('input[name="loginname"], input[name="username"]', { timeout: 5000 });
+            await page.type('input[name="loginname"], input[name="username"]', username, { delay: 100 });
+            
+            await page.click('button[type="submit"]');
+            
+            // Wait for password field
+            await page.waitForSelector('input[name="password"], input[type="password"]', { timeout: 5000 });
+            await page.type('input[name="password"], input[type="password"]', password, { delay: 100 });
+            
+            await Promise.all([
+                page.waitForNavigation({ waitUntil: 'networkidle2' }),
+                page.click('button[type="submit"]')
+            ]);
+            console.log('Login credentials submitted.');
+        } catch (e) {
+            console.log('Login fields not found or already logged in:', e.message);
+        }
+    }
     
     // Attempt to navigate to reservations and set dates
     try {

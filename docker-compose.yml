@@ -13,7 +13,15 @@ services:
       - NODE_ENV=production
       - WEBHOOK_URL=http://localhost:5678/
       - GENERIC_TIMEZONE=Africa/Johannesburg
-      # Enables node_modules in the Code Node
-      - NODE_FUNCTION_ALLOW_EXTERNAL=puppeteer
+      # Securely map credentials into the environment (pulling from your local .env file)
+      - BOOKING_USER=${BOOKING_USER}
+      - BOOKING_PASS=${BOOKING_PASS}
+      # Allow the UI nodes to actually read $env expressions
+      - N8N_BLOCK_ENV_ACCESS_IN_NODE=false
+      # Enables node_modules in the Code Node.
+      # Enables node_modules in the Code Node.
+      # Wildcard is used so absolute paths are not rejected by the task runner.
+      - NODE_FUNCTION_ALLOW_EXTERNAL=*
+      - NODE_FUNCTION_ALLOW_BUILTIN=*
     volumes:
       - ./.n8n:/home/node/.n8n

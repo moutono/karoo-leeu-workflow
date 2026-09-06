@@ -15,6 +15,13 @@ export async function extractBookingInfo(page: Page, targetResId: string): Promi
     console.log(`Extracting data for Reservation ID: ${targetResId}`);
     
     try {
+        // Quick check if we are still on a login/home page
+        const url = page.url();
+        if (url.includes('sign-in') || url.includes('login')) {
+            console.error('Cannot extract data: Page is stuck on login.');
+            return null;
+        }
+
         // Wait for the table to load
         await page.waitForSelector('.reservation-table__wrapper table tbody tr', { timeout: 10000 });
     } catch (err) {
